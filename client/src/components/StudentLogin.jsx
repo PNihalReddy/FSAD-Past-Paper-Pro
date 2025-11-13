@@ -54,24 +54,24 @@ export default function StudentLogin({ onNavigate }) {
 
     setLoading(true)
     try {
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, role: 'student' })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        // Store JWT token
-        localStorage.setItem('token', data.token)
-        localStorage.setItem('role', 'student')
-        // Redirect to student dashboard
-        onNavigate('student-dashboard')
-      } else {
-        const error = await response.json()
-        setErrors({ general: error.message || 'Invalid credentials' })
+      // Mock authentication - accepts any valid email/password
+      await new Promise(resolve => setTimeout(resolve, 500)) // Simulate API delay
+      
+      // Generate mock token
+      const mockToken = 'mock-token-' + Date.now()
+      const mockUser = {
+        email: formData.email,
+        name: formData.email.split('@')[0],
+        role: 'student'
       }
+      
+      // Store credentials
+      localStorage.setItem('token', mockToken)
+      localStorage.setItem('role', 'student')
+      localStorage.setItem('user', JSON.stringify(mockUser))
+      
+      // Redirect to student dashboard
+      onNavigate('student-dashboard')
     } catch (error) {
       setErrors({ general: 'Login failed. Please try again.' })
     } finally {

@@ -68,22 +68,24 @@ export default function FacultyLogin({ onNavigate }) {
 
     setLoading(true)
     try {
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, role: 'faculty' })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        localStorage.setItem('token', data.token)
-        localStorage.setItem('role', 'faculty')
-        onNavigate('faculty-dashboard')
-      } else {
-        const error = await response.json()
-        setErrors({ general: error.message || 'Invalid credentials' })
+      // Mock authentication - accepts any valid email/password
+      await new Promise(resolve => setTimeout(resolve, 500)) // Simulate API delay
+      
+      // Generate mock token
+      const mockToken = 'mock-token-' + Date.now()
+      const mockUser = {
+        email: formData.email,
+        name: formData.email.split('@')[0],
+        role: 'faculty'
       }
+      
+      // Store credentials
+      localStorage.setItem('token', mockToken)
+      localStorage.setItem('role', 'faculty')
+      localStorage.setItem('user', JSON.stringify(mockUser))
+      
+      // Redirect to faculty dashboard
+      onNavigate('faculty-dashboard')
     } catch (error) {
       setErrors({ general: 'Login failed. Please try again.' })
     } finally {

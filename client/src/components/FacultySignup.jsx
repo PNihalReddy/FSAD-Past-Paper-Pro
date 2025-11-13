@@ -88,28 +88,25 @@ export default function FacultySignup({ onNavigate }) {
 
     setLoading(true)
     try {
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          department: formData.department,
-          role: 'faculty'
-        })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        localStorage.setItem('token', data.token)
-        localStorage.setItem('role', 'faculty')
-        onNavigate('faculty-dashboard')
-      } else {
-        const error = await response.json()
-        setErrors({ general: error.message || 'Signup failed' })
+      // Mock signup - creates account instantly
+      await new Promise(resolve => setTimeout(resolve, 500)) // Simulate API delay
+      
+      // Generate mock token
+      const mockToken = 'mock-token-' + Date.now()
+      const mockUser = {
+        name: formData.name,
+        email: formData.email,
+        department: formData.department,
+        role: 'faculty'
       }
+      
+      // Store credentials
+      localStorage.setItem('token', mockToken)
+      localStorage.setItem('role', 'faculty')
+      localStorage.setItem('user', JSON.stringify(mockUser))
+      
+      // Redirect to dashboard
+      onNavigate('faculty-dashboard')
     } catch (error) {
       setErrors({ general: 'Signup failed. Please try again.' })
     } finally {
