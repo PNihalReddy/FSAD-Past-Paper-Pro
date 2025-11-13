@@ -1,0 +1,17 @@
+# Render configuration for backend
+services:
+  - type: web
+    name: past-papers-backend
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install
+    startCommand: node src/app.js
+    envVars:
+      - key: PORT
+        value: 4000
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+    autoDeploy: true

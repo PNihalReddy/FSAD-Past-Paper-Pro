@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+
+/* Typography */
+@layer base {
+  html { @apply bg-black text-gray-200; }
+  body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+  h1, h2, h3 { font-family: Orbitron, Inter, ui-sans-serif, system-ui; }
+}
+
+/* Dynamic background: faint grid + glow lines */
+.bg-grid {
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(255,255,255,0.06) 1px, transparent 0);
+  background-size: 28px 28px;
+}
+
+.glow-lines::before,
+.glow-lines::after {
+  content: "";
+  position: absolute;
+  inset: -20% -10% auto -10%;
+  height: 50%;
+  pointer-events: none;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(56,189,248,0.18) 0%, rgba(0,0,0,0) 70%);
+  filter: blur(40px);
+}
+
+.glow-lines::after {
+  inset: auto -10% -20% -10%;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(234,179,8,0.16) 0%, rgba(0,0,0,0) 70%);
+}
+
+.neon-title {
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 10px rgba(56,189,248,0.35), 0 0 25px rgba(56,189,248,0.2);
+  background: linear-gradient(90deg, #93c5fd 0%, #38bdf8 40%, #fbbf24 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
