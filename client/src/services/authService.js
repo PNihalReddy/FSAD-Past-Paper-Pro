@@ -1,5 +1,7 @@
 import { 
-  signInWithPopup, 
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
@@ -47,7 +49,18 @@ export const signInWithGoogle = async () => {
     // Provide user-friendly error messages
     let errorMessage = error.message;
     
-    if (error.code === 'auth/popup-closed-by-user') {
+    // If popup is blocked or environment doesn't support popups, fallback to redirect flow
+    if (error.code === 'auth/popup-blocked' || error.code === 'auth/operation-not-supported-in-this-environment') {
+      try {
+        // This will navigate the browser to Google and back
+        await signInWithRedirect(auth, googleProvider);
+        // Not returned in normal flow because the browser navigates away.
+        return { success: true, redirect: true };
+      } catch (redirectErr) {
+        console.error('Google Redirect Sign-in Error:', redirectErr);
+        errorMessage = 'Popup was blocked and redirect failed. Please allow popups or try a different browser.';
+      }
+    } else if (error.code === 'auth/popup-closed-by-user') {
       errorMessage = 'Sign-in cancelled. Please try again.';
     } else if (error.code === 'auth/popup-blocked') {
       errorMessage = 'Popup was blocked. Please allow popups for this site.';
@@ -66,6 +79,33 @@ export const signInWithGoogle = async () => {
       success: false,
       error: errorMessage
     };
+  }
+};
+
+// Handle result after signInWithRedirect completes and returns to the app
+export const getGoogleRedirectResult = async () => {
+  if (!isFirebaseConfigured()) {
+    return null;
+  }
+  try {
+    const result = await getRedirectResult(auth);
+    if (!result) return null;
+    const user = result.user;
+    const token = await user.getIdToken();
+    return {
+      success: true,
+      user: {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL
+      },
+      token
+    };
+  } catch (error) {
+    console.error('Get Redirect Result Error:', error);
+    let errorMessage = error.message || 'Google Sign-in failed after redirect.';
+    return { success: false, error: errorMessage };
   }
 };
 

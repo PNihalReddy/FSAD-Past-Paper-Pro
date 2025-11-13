@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { signInWithGoogle, signUpWithEmail } from '../services/authService'
+import { useState, useEffect } from 'react'
+import { signInWithGoogle, signUpWithEmail, getGoogleRedirectResult } from '../services/authService'
+import { isFirebaseConfigured } from '../config/firebase'
 
 export default function FacultySignup({ onNavigate }) {
   const [formData, setFormData] = useState({
@@ -11,7 +12,26 @@ export default function FacultySignup({ onNavigate }) {
   })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
-  const [showApprovalMessage, setShowApprovalMessage] = useState(false)
+
+  // Handle Google redirect result (when popup is blocked)
+  useEffect(() => {
+    (async () => {
+      const result = await getGoogleRedirectResult()
+      if (!result) return
+      if (result.success) {
+        if (!validateFacultyEmail(result.user.email)) {
+          setErrors({ general: 'Please use your institutional email (@klh.edu.in) or verified Gmail' })
+          return
+        }
+        localStorage.setItem('token', result.token)
+        localStorage.setItem('role', 'faculty')
+        localStorage.setItem('user', JSON.stringify(result.user))
+        onNavigate('faculty-dashboard')
+      } else if (result.error) {
+        setErrors({ general: result.error })
+      }
+    })()
+  }, [])
 
   // Validate faculty email format
   const validateFacultyEmail = (email) => {
@@ -79,13 +99,15 @@ export default function FacultySignup({ onNavigate }) {
           email: formData.email,
           password: formData.password,
           department: formData.department,
-          role: 'faculty',
-          status: 'pending' // Awaiting admin approval
+          role: 'faculty'
         })
       })
 
       if (response.ok) {
-        setShowApprovalMessage(true)
+        const data = await response.json()
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('role', 'faculty')
+        onNavigate('faculty-dashboard')
       } else {
         const error = await response.json()
         setErrors({ general: error.message || 'Signup failed' })
@@ -102,7 +124,7 @@ export default function FacultySignup({ onNavigate }) {
     try {
       const result = await signInWithGoogle()
       
-      if (result.success) {
+      if (result.success && !result.redirect) {
         // Validate faculty email format
         if (!validateFacultyEmail(result.user.email)) {
           setErrors({ general: 'Please use your institutional email (@klh.edu.in) or verified Gmail' })
@@ -115,8 +137,11 @@ export default function FacultySignup({ onNavigate }) {
         localStorage.setItem('role', 'faculty')
         localStorage.setItem('user', JSON.stringify(result.user))
         
-        // Show approval message
-        setShowApprovalMessage(true)
+        // Directly redirect to dashboard (no approval needed)
+        onNavigate('faculty-dashboard')
+      } else if (result.redirect) {
+        // Redirect flow initiated; nothing else to do here
+        return
       } else {
         setErrors({ general: result.error || 'Google Sign-up failed' })
       }
@@ -125,33 +150,6 @@ export default function FacultySignup({ onNavigate }) {
     } finally {
       setLoading(false)
     }
-  }
-
-  if (showApprovalMessage) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-sky-200 via-blue-100 to-pink-100 relative overflow-hidden flex items-center justify-center px-4">
-        <div className="bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200 text-center">
-          <div className="flex justify-center mb-6">
-            <div className="h-20 w-20 rounded-full bg-teal-100 flex items-center justify-center">
-              <svg className="w-10 h-10 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-          <h2 className="text-2xl font-bold mb-4 text-teal-600">Account Created!</h2>
-          <p className="text-slate-600 mb-6">
-            Your faculty account has been created successfully. It is currently awaiting admin approval. 
-            You will receive an email notification once your account is approved.
-          </p>
-          <button
-            onClick={() => onNavigate('landing')}
-            className="w-full py-3 px-4 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors"
-          >
-            Back to Home
-          </button>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -187,7 +185,6 @@ export default function FacultySignup({ onNavigate }) {
             </div>
             <h2 className="text-3xl font-bold mb-2" style={{ color: '#1e3a8a' }}>Faculty Sign Up</h2>
             <p className="text-slate-600">Create your faculty account</p>
-            <p className="text-xs text-amber-600 mt-2">⚠️ Account requires admin approval</p>
           </div>
 
           {/* Error Message */}
@@ -318,30 +315,38 @@ export default function FacultySignup({ onNavigate }) {
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-slate-500">Or sign up with</span>
-            </div>
-          </div>
+          {/* Google Sign Up - only when Firebase is configured */}
+          {isFirebaseConfigured() ? (
+            <>
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-slate-500">Or sign up with</span>
+                </div>
+              </div>
 
-          {/* Google Sign Up */}
-          <button
-            type="button"
-            onClick={handleGoogleSignUp}
-            className="w-full py-3 px-4 border border-slate-300 rounded-lg font-medium text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center gap-3"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
-            Sign up with Google
-          </button>
+              <button
+                type="button"
+                onClick={handleGoogleSignUp}
+                className="w-full py-3 px-4 border border-slate-300 rounded-lg font-medium text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center gap-3"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Sign up with Google
+              </button>
+            </>
+          ) : (
+            <div className="mt-6 text-center text-sm text-slate-600">
+              Google sign-up is disabled on this deployment. Please use email & password.
+            </div>
+          )}
 
           {/* Login Link */}
           <div className="mt-6 text-center text-sm text-slate-600">

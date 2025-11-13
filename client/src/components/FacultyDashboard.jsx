@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { logOut } from '../services/authService'
 import { uploadPaper, getMyPapers, getPapers, updatePaper, deletePaper, bulkDeletePapers } from '../services/paperService'
+import DevModeBanner from './DevModeBanner'
 
 export default function FacultyDashboard({ onNavigate }) {
   const [user, setUser] = useState(null)
@@ -329,6 +330,9 @@ export default function FacultyDashboard({ onNavigate }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-200 via-blue-100 to-pink-100 relative overflow-hidden">
+      {/* Testing Mode Banner */}
+      <DevModeBanner />
+      
       {/* Soft Cloud Background */}
       <div className="absolute inset-0">
         <svg className="absolute inset-0 w-full h-full opacity-30" xmlns="http://www.w3.org/2000/svg">
